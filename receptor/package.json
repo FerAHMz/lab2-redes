@@ -1,0 +1,10 @@
+{
+  "name": "lab2-redes-receptor",
+  "version": "1.0.0",
+  "description": "Servidor bancario (receptor) - Lab2 Redes UVG",
+  "main": "receptor.js",
+  "scripts": {
+    "start": "node receptor.js"
+  },
+  "license": "MIT"
+}
