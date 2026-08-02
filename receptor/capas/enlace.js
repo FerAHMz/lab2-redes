@@ -5,10 +5,12 @@
 // (y corrige, si el algoritmo lo permite) la trama. Espejo del dispatch de
 // emisor/capas/enlace.py.
 
+const crc32 = require("../algoritmos/crc32");
 const hamming = require("../algoritmos/hamming");
 
 const ALGORITMOS = {
   [hamming.NOMBRE]: hamming,
+  [crc32.NOMBRE]: crc32,
 };
 
 function algoritmosDisponibles() {

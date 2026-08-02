@@ -23,7 +23,8 @@ function mostrarMensaje(paquete) {
     return { estado: "error", mensaje: e.message };
   }
   if (r.estado === "error") {
-    console.log(`[banco] error no corregible (${r.bloquesConError} bloques)`);
+    const detalle = r.bloquesConError != null ? ` (${r.bloquesConError} bloques)` : "";
+    console.log(`[banco] error no corregible${detalle}`);
     return { estado: "error", mensaje: "Trama con errores no corregibles" };
   }
 
