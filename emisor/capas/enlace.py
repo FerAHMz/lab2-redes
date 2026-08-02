@@ -5,10 +5,11 @@ La verificacion/correccion ocurre del lado del receptor; se incluye aqui tambien
 para permitir pruebas locales sin sockets.
 """
 
-from algoritmos import hamming
+from algoritmos import crc32, hamming
 
 ALGORITMOS = {
     hamming.NOMBRE: hamming,
+    crc32.NOMBRE: crc32,
 }
 
 
