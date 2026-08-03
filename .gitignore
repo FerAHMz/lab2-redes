@@ -17,3 +17,11 @@ pruebas/salidas/
 .DS_Store
 .idea/
 .vscode/
+
+# LaTeX (artefactos de compilacion)
+reporte/*.aux
+reporte/*.out
+reporte/*.toc
+reporte/*.fls
+reporte/*.fdb_latexmk
+reporte/*.synctex.gz

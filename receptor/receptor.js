@@ -7,9 +7,10 @@
 // Presentacion -> Aplicacion) y devuelve la respuesta del banco.
 //
 // Uso:
-//     node receptor/receptor.js
+//     node receptor/receptor.js [puerto]
 
 const aplicacion = require("./capas/aplicacion");
 const transmision = require("./capas/transmision");
 
-transmision.recibirInformacion(aplicacion.mostrarMensaje);
+const puerto = Number(process.argv[2]) || transmision.PUERTO_DEFECTO;
+transmision.recibirInformacion(aplicacion.mostrarMensaje, transmision.HOST_DEFECTO, puerto);
