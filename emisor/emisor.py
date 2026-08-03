@@ -5,9 +5,9 @@ Enlace -> Ruido -> Transmision) para enviar un mensaje al servidor bancario a
 traves de un canal no confiable, y muestra la respuesta.
 
 Uso:
-    python3 emisor/emisor.py
-El receptor Node debe estar escuchando primero:
-    node receptor/receptor.js
+    python3 emisor/emisor.py [puerto]
+El receptor Node debe estar escuchando primero (en el mismo puerto):
+    node receptor/receptor.js [puerto]
 """
 
 import os
@@ -44,11 +44,9 @@ def enviar_mensaje(sock, texto, algoritmo, tasa_error):
 
 
 def main():
-    sock = transmision.conectar()
-    print(
-        f"[emisor] conectado al banco en "
-        f"{transmision.HOST_DEFECTO}:{transmision.PUERTO_DEFECTO}"
-    )
+    puerto = int(sys.argv[1]) if len(sys.argv) > 1 else transmision.PUERTO_DEFECTO
+    sock = transmision.conectar(puerto=puerto)
+    print(f"[emisor] conectado al banco en {transmision.HOST_DEFECTO}:{puerto}")
     try:
         while True:
             texto, algoritmo, tasa = aplicacion.solicitar_mensaje(
