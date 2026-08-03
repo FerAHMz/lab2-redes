@@ -7,6 +7,7 @@
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{booktabs}
+\usepackage{amssymb}
 \usepackage{hyperref}
 
 \graphicspath{{../pruebas/graficas/}{.}}
@@ -77,6 +78,22 @@ mensaje (4, 16, 64 y 256 caracteres) y probabilidad de error por bit
 %========================= RESULTADOS =========================
 \section{Resultados}
 
+\subsection{Demostración de la aplicación}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{pruebas-lab2.png}
+  \caption{Intercambio de mensajes entre el cajero (Python, abajo) y el
+  servidor bancario (Node.js, arriba) mediante sockets TCP. Se observan los
+  tres resultados posibles: con Hamming y $p=0.01$ el ruido volteó 5 bits y
+  los 5 fueron corregidos (\emph{corregido}); con CRC-32 y $p=0.05$ se
+  voltearon 12 bits y la trama fue rechazada (\emph{error}); con el canal
+  limpio el mensaje se entregó intacto (\emph{ok}).}
+  \label{fig:demo}
+\end{figure}
+
+\subsection{Pruebas automatizadas}
+
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.85\textwidth]{exito_vs_tasa.png}
@@ -115,11 +132,52 @@ mensaje (4, 16, 64 y 256 caracteres) y probabilidad de error por bit
 %========================= DISCUSIÓN =========================
 \section{Discusión}
 
-% TODO: desarrollar la discusión con base en las figuras.
-% Preguntas guía del laboratorio:
-%  - ¿Qué algoritmo tuvo un mejor funcionamiento?
-%  - ¿Qué algoritmo es más flexible para aceptar mayores tasas de errores?
-%  - ¿Cuándo es mejor usar detección en lugar de corrección?
+\subsection*{¿Qué algoritmo tuvo un mejor funcionamiento?}
+
+Depende del criterio con que se mida. Si el objetivo es \emph{entregar} el
+mensaje a pesar del ruido, Hamming fue claramente superior
+(figura~\ref{fig:exito}): con $p=0.001$ entregó el 99.6\% de los mensajes
+correctamente y todavía a $p=0.01$ mantuvo un 69.6\% de entrega, mientras que
+CRC-32, al no poder corregir, cayó del 62.0\% al 18.8\% en el mismo rango
+—CRC-32 solo entrega las tramas que llegaron intactas por azar.
+
+Sin embargo, si el criterio es la \emph{confiabilidad} de lo que se acepta, el
+resultado se invierte (figura~\ref{fig:nodetectados}): CRC-32 no dejó pasar ni
+un solo mensaje corrupto en los 5\,600 envíos de las pruebas, mientras que
+Hamming aceptó mensajes corruptos como válidos hasta en un 29.0\% de los envíos
+($p=0.02$). Esto ocurre porque cuando un bloque de 12 bits sufre dos o más
+errores, el síndrome apunta a una posición equivocada y el decodificador
+``corrige'' un bit que estaba bien, corrompiendo el bloque sin detectarlo.
+Para una aplicación bancaria, aceptar un retiro alterado es mucho más grave
+que rechazarlo y retransmitir.
+
+\subsection*{¿Qué algoritmo es más flexible ante mayores tasas de error?}
+
+Ninguno de los dos \emph{entrega} mensajes con tasas altas, pero se degradan de
+forma muy distinta. Hamming tolera bien el ruido mientras los errores caen
+aislados (a lo sumo uno por bloque de 12 bits), lo que es probable con
+$p \lesssim 0.005$; más allá, la probabilidad de dos errores en un mismo bloque
+crece y su tasa de errores no detectados se estanca alrededor del 20--30\%,
+que es su peor característica. CRC-32 es más ``flexible'' en el sentido de que
+su capacidad de detección no se degrada: del rango completo probado
+($10^{-3}$ a $10^{-1}$) detectó el 100\% de las tramas corruptas
+(figura~\ref{fig:desglose}); simplemente rechaza casi todo cuando el canal es
+muy ruidoso ($99.6\%$ a $p=0.05$), delegando la recuperación a una
+retransmisión.
+
+\subsection*{¿Cuándo conviene detección en lugar de corrección?}
+
+La detección (CRC-32) conviene cuando existe un canal de retorno que permita
+retransmitir —como en esta práctica, donde el cajero y el banco mantienen una
+conexión TCP bidireccional— y cuando el costo de aceptar datos corruptos es
+alto. Además su overhead es fijo (32 bits) y se diluye con el tamaño del
+mensaje: del 14.3\% en mensajes de 4 caracteres al 1.6\% en mensajes de 256
+(figura~\ref{fig:overhead}). La corrección (Hamming) conviene cuando
+retransmitir es caro o imposible (enlaces satelitales, streaming en tiempo
+real, memorias) y se prefiere pagar un overhead constante del 50\% a cambio de
+recuperar el mensaje sin ida y vuelta. En un escenario real ambos se
+complementan: corrección para los errores frecuentes y detección como red de
+seguridad final.
 
 %========================= COMENTARIO GRUPAL (opcional) =========================
 % \section{Comentario grupal}
@@ -127,11 +185,29 @@ mensaje (4, 16, 64 y 256 caracteres) y probabilidad de error por bit
 %========================= CONCLUSIONES =========================
 \section{Conclusiones}
 
-% TODO: 3-5 conclusiones alineadas con los objetivos del laboratorio.
 \begin{itemize}
-  \item
-  \item
-  \item
+  \item La arquitectura de capas permitió separar responsabilidades con
+        claridad: fue posible implementar el emisor en Python y el receptor en
+        Node.js, y agregar un segundo algoritmo a la capa de Enlace sin tocar
+        las demás capas, evidenciando el valor del modelo de servicios visto en
+        clase.
+  \item Hamming (12,8) maximiza la entrega en canales con ruido moderado
+        (99.6\% de entrega a $p=0.001$), pero su garantía se rompe con más de
+        un error por bloque: en las pruebas llegó a aceptar hasta un 29\% de
+        mensajes corruptos sin detectarlos, lo que lo hace inadecuado como
+        único mecanismo de integridad en aplicaciones críticas.
+  \item CRC-32 detectó el 100\% de las tramas corruptas en los 5\,600 envíos
+        de prueba y su overhead fijo de 32 bits se vuelve despreciable al
+        crecer el mensaje (1.6\% a 256 caracteres), confirmando por qué es el
+        estándar de integridad en tramas Ethernet.
+  \item La elección entre detección y corrección no es de ``mejor o peor''
+        sino de contexto: con un canal de retorno disponible conviene detectar
+        y retransmitir; sin él, o con retransmisiones costosas, conviene pagar
+        el overhead de la corrección.
+  \item Simular el ruido como probabilidad de volteo por bit permitió
+        cuantificar el comportamiento de ambos algoritmos de forma
+        reproducible (11\,200 envíos automatizados con semilla fija), en lugar
+        de depender de pruebas manuales aisladas.
 \end{itemize}
 
 %========================= REFERENCIAS =========================
